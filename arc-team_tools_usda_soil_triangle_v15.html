@@ -3,7 +3,7 @@
   USDA Soil Texture Triangle
   Copyright (C) 2026 Luca Bezzi
   SPDX-License-Identifier: GPL-3.0-or-later
-  Classi e confini: USDA Soil Survey Manual, Agriculture Handbook 18 (2018).
+  Classes and boundaries: USDA Soil Survey Manual, Agriculture Handbook 18 (2018).
 -->
 <html lang="it">
 <head>
@@ -324,13 +324,13 @@
   var canvas = document.getElementById("canvas");
 
   if (!DATA || !DATA.classes) {
-    canvas.innerHTML = '<div class="error">Dataset non caricato: manca <code>data/classes.js</code>. ' +
-                       'Esegui <code>python3 tools/build_dataset.py</code>.</div>';
+    canvas.innerHTML = '<div class="error">Dataset non caricato / dataset not loaded: missing <code>data/classes.js</code>. ' +
+                       'Esegui / run <code>python3 tools/build_dataset.py</code>.</div>';
     return;
   }
 
   if (!window.Raphael) {
-    canvas.innerHTML = '<div class="error">Libreria Raphael non caricata: manca <code>js/raphael.js</code>.</div>';
+    canvas.innerHTML = '<div class="error">Libreria Raphael non caricata / Raphaël library not loaded: missing <code>js/raphael.js</code>.</div>';
     return;
   }
 
@@ -342,9 +342,9 @@
   var shapes = {};   // slug -> [elementi Raphael]
   var selected = null;
   var labels = {};
-  var legendView = null;   // classe mostrata dalla legenda, per ridisegnarla al cambio lingua
+  var legendView = null;   // class shown by the legend, to redraw it on language change
 
-  // ------------------------------------------------------------------ lingua
+  // ----------------------------------------------------------------- language
   var LANG_KEY = "soilTriangleLang";
 
   var I18N = {
@@ -433,7 +433,7 @@
   function altName(cls) { return lang === "it" ? cls.en : cls.it; }
 
 
-  // ---------------------------------------------------------------- geometria
+  // ---------------------------------------------------------------- geometry
   function toXY(sand, silt, clay) {
     var t = sand + silt + clay;
     if (t <= 0) return { x: 0, y: 0 };
@@ -456,7 +456,7 @@
     return { sand: sand, silt: silt, clay: 100 - sand - silt };
   }
 
-  // --------------------------------------------------------------- regole USDA
+  // --------------------------------------------------------------- USDA rules
   function testConstraint(k, s, si, cl, eps) {
     var v = k.a * s + k.b * si + k.c * cl;
     switch (k.op) {
@@ -485,7 +485,7 @@
     for (i = 0; i < classes.length; i++) {
       if (matches(classes[i], s, si, cl, 0)) return classes[i];
     }
-    // punto esattamente su un confine: si accetta con tolleranza
+    // point exactly on a boundary: accepted with a tolerance
     for (i = 0; i < classes.length; i++) {
       if (matches(classes[i], s, si, cl, 1e-6)) return classes[i];
     }
@@ -499,7 +499,7 @@
     return null;
   }
 
-  // ------------------------------------------------------------------ disegno
+  // ------------------------------------------------------------------- drawing
   function pathOf(ring) {
     var d = "M" + ring[0][0] + "," + ring[0][1];
     for (var i = 1; i < ring.length; i++) {
@@ -511,7 +511,7 @@
   function draw() {
     var i, j, cls, ring;
 
-    // classi
+    // classes
     for (i = 0; i < classes.length; i++) {
       cls = classes[i];
       var els = [];
@@ -529,20 +529,20 @@
       shapes[cls.slug] = els;
     }
 
-    // reticolo: tre famiglie di linee ogni 10 % (clay, sand, silt costanti)
+    // grid: three families of lines every 10 % (constant clay, sand, silt)
     drawGrid();
 
-    // assi
+    // axes
     drawAxes();
 
-    // bordo del triangolo
+    // triangle border
     var tri = paper.path(
       "M" + frame.apex[0] + "," + frame.apex[1] +
       "L" + frame.sand[0] + "," + frame.sand[1] +
       "L" + frame.silt[0] + "," + frame.silt[1] + "Z"
     ).attr({ fill: "none", stroke: "#3a3b33", "stroke-width": 1.8, "stroke-linejoin": "round" });
 
-    // etichette dei vertici
+    // vertex labels
     vertexLabel(frame.apex[0], frame.apex[1] - 22, "100% clay");
     vertexLabel(frame.sand[0] - 6, frame.sand[1] + 26, "100% sand");
     vertexLabel(frame.silt[0] + 6, frame.silt[1] + 26, "100% silt");
@@ -558,9 +558,9 @@
     });
   }
 
-  // Reticolo interno: per ogni 10 % una linea a clay costante (orizzontale),
-  // una a sand costante (parallela al lato destro) e una a silt costante
-  // (parallela al lato sinistro). Insieme formano i triangoli da 10 %.
+  // Internal grid: for every 10 % one line of constant clay (horizontal),
+  // one of constant sand (parallel to the right side) and one of constant silt
+  // (parallel to the left side). Together they form the 10 % triangles.
   var GRID_STYLE = {
     stroke: "#5c5d54",
     "stroke-opacity": 0.4,
@@ -576,11 +576,11 @@
     }
 
     for (i = 10; i <= 90; i += 10) {
-      // clay = i  (lato sinistro -> lato destro)
+      // clay = i  (left side -> right side)
       line(toXY(100 - i, 0, i), toXY(0, 100 - i, i));
-      // sand = i  (lato sinistro -> base)
+      // sand = i  (left side -> base)
       line(toXY(i, 0, 100 - i), toXY(i, 100 - i, 0));
-      // silt = i  (lato destro -> base)
+      // silt = i  (right side -> base)
       line(toXY(0, i, 100 - i), toXY(100 - i, i, 0));
     }
   }
@@ -588,7 +588,7 @@
   function drawAxes() {
     var i, p;
 
-    // clay: bordo sinistro (sand corner -> apex)
+    // clay: left edge (sand corner -> apex)
     for (i = 10; i < 100; i += 10) {
       p = toXY(100 - i, 0, i);
       paper.path("M" + p.x + "," + p.y + "L" + (p.x - 7) + "," + (p.y + 4))
@@ -599,7 +599,7 @@
       });
     }
 
-    // silt: bordo destro (apex -> silt corner)
+    // silt: right edge (apex -> silt corner)
     for (i = 10; i < 100; i += 10) {
       p = toXY(0, i, 100 - i);
       paper.path("M" + p.x + "," + p.y + "L" + (p.x + 7) + "," + (p.y + 4))
@@ -610,7 +610,7 @@
       });
     }
 
-    // sand: bordo inferiore (sand corner -> silt corner)
+    // sand: bottom edge (sand corner -> silt corner)
     for (i = 10; i < 100; i += 10) {
       p = toXY(i, 100 - i, 0);
       paper.path("M" + p.x + "," + p.y + "L" + (p.x - 3) + "," + (p.y + 7))
@@ -621,15 +621,15 @@
       });
     }
 
-    // titoli degli assi: al centro di ciascun lato, ruotati lungo il lato e
-    // spostati verso l'esterno oltre le tacche (come "sand %" sulla base)
+    // axis titles: at the midpoint of each side, rotated along the side and
+    // moved outwards beyond the ticks (like "sand %" on the base)
     sideLabel(frame.sand, frame.apex, "clay %", 48);
     sideLabel(frame.apex, frame.silt, "silt %", 48);
     sideLabel(frame.sand, frame.silt, "sand %", 46);
   }
 
-  // Etichetta al centro del lato a-b, spostata di `dist` px lungo la normale
-  // uscente, ruotata come il lato.
+  // Label at the midpoint of side a-b, moved by `dist` px along the outward
+  // normal, rotated like the side.
   function sideLabel(a, b, text, dist) {
     var dx = b[0] - a[0], dy = b[1] - a[1];
     var len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -651,7 +651,7 @@
     return t;
   }
 
-  // ------------------------------------------------------------------- stato
+  // --------------------------------------------------------------------- state
   var dot = paper.circle(0, 0, 6).attr({
     fill: "#ffffff", stroke: "#23241f", "stroke-width": 2.5, cursor: "pointer"
   });
@@ -722,12 +722,12 @@
     return p;
   }
 
-  // ------------------------------------------------------------------ input
-  // Regola: gli ultimi due campi che modifichi restano manuali, il terzo viene
-  // calcolato come 100 meno gli altri due. Si puo' quindi partire da qualsiasi
-  // coppia: clay+silt, clay+sand, silt+sand. All'avvio il calcolato e' sand.
+  // -------------------------------------------------------------------- input
+  // Rule: the last two fields you edit stay manual, the third is calculated as
+  // 100 minus the other two. You can therefore start from any pair:
+  // clay+silt, clay+sand, silt+sand. At startup the calculated field is sand.
   var KEYS = ["clay", "silt", "sand"];
-  var manual = ["clay", "silt"];   // dal piu' recente al meno recente
+  var manual = ["clay", "silt"];   // most recent first
   var derived = "sand";
   var touched = false;
 
@@ -754,8 +754,8 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
-  // Il campo appena modificato diventa manuale. Se era quello calcolato, al
-  // suo posto passa il piu' vecchio dei due manuali.
+  // The field just edited becomes manual. If it was the calculated one, the
+  // oldest of the two manual fields takes its place.
   function setEdited(key) {
     if (key === derived) {
       var next = manual[1];
@@ -826,7 +826,7 @@
     });
   });
 
-  // --------------------------------------------------- click sul triangolo
+  // ---------------------------------------------------- click on the triangle
   function onCanvasClick(evt) {
     var svg = paper.canvas;
     var rect = svg.getBoundingClientRect();
@@ -839,12 +839,12 @@
       return;
     }
 
-    // riporta dentro il triangolo
+    // clamp back into the triangle
     var s = Math.max(0, c.sand), si = Math.max(0, c.silt), cl = Math.max(0, c.clay);
     var t = s + si + cl;
     s = 100 * s / t; si = 100 * si / t; cl = 100 * cl / t;
 
-    // si compilano i due campi manuali, il terzo resta esattamente il resto
+    // fill in the two manual fields, the third stays exactly the remainder
     var comp = { sand: s, silt: si, clay: cl };
     var v1 = Math.round(comp[manual[0]] * 10) / 10;
     var v2 = Math.round(comp[manual[1]] * 10) / 10;
@@ -856,7 +856,7 @@
     update();
   }
 
-  // ---------------------------------------------------------------- legenda
+  // ------------------------------------------------------------------- legend
   function buildLegend() {
     var box = document.getElementById("legend");
     box.innerHTML = "";
@@ -889,7 +889,7 @@
     });
   }
 
-  // ------------------------------------------------------------- interfaccia
+  // --------------------------------------------------------------- interface
   function applyLang(next) {
     lang = next;
     T = I18N[lang];
@@ -923,13 +923,13 @@
     });
   }
 
-  // ------------------------------------------------------------------ avvio
+  // -------------------------------------------------------------------- start
   draw();
   paper.canvas.style.cursor = "crosshair";
   paper.canvas.addEventListener("click", onCanvasClick);
   applyLang(lang);
 
-  // API minima, usata dai test e da eventuali integrazioni
+  // minimal API, used by tests and possible integrations
   window.SOIL_TRIANGLE_API = {
     classify: function (sand, silt, clay) {
       var c = classify(sand, silt, clay);

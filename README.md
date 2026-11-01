@@ -1,183 +1,185 @@
 # USDA Soil Texture Triangle
 
-Strumento per determinare la classe tessiturale di un suolo a partire dalle
-percentuali di sabbia, limo e argilla, secondo le 12 classi del sistema USDA.
+[**English**](README.md) | [Italiano](README.it.md)
 
-**Demo online:** <https://lucaarcteam.github.io/soil-texture-triangle/>
+Tool to determine the soil texture class from the percentages of sand, silt and
+clay, using the 12 classes of the USDA system.
+
+**Live demo:** <https://lucaarcteam.github.io/soil-texture-triangle/>
 
 <p align="center">
   <img src="docs/screenshot.png"
-       alt="USDA Soil Texture Triangle con clay 20 %, silt 40 % e sand 40 %: classe Franco (Loam)"
+       alt="USDA Soil Texture Triangle with clay 20 %, silt 40 % and sand 40 %: Loam class"
        width="900">
 </p>
 
 - App: `arc-team_tools_usda_soil_triangle_v15.html`
-- Dati: `data/classes.js` (generato, non modificare a mano)
-- Regole: `data/rules.json` (fonte di verità, modificabile)
+- Data: `data/classes.js` (generated, do not edit by hand)
+- Rules: `data/rules.json` (source of truth, editable)
 - Build: `tools/build_dataset.py`
-- Lingue: italiano e inglese, con due bandierine sotto il titolo
-- Licenza: GPL-3.0-or-later (vedi [`LICENSE`](LICENSE))
+- Languages: Italian and English, switchable with two flags below the title
+- License: GPL-3.0-or-later (see [`LICENSE`](LICENSE))
 
-L'app funziona offline: dipende solo da `js/raphael.js` (Raphaël 2.0, già
-presente nel repo) e da `data/classes.js`. Nessuna CDN, nessuna chiamata di rete.
+The app works offline: it only depends on `js/raphael.js` (Raphaël 2.0, bundled
+in the repository) and `data/classes.js`. No CDN, no network calls.
 
 ---
 
-## 1. La fonte
+## 1. The source
 
-Le classi e i confini vengono dal **Soil Survey Manual**, USDA Agriculture
-Handbook No. 18, 4ª edizione (2018), capitolo 3, sezione *Definitions of Soil
-Texture Classes and Subclasses*, pp. 122–124.
+The classes and boundaries come from the **Soil Survey Manual**, USDA
+Agriculture Handbook No. 18, 4th edition (2018), chapter 3, section
+*Definitions of Soil Texture Classes and Subclasses*, pp. 122–124.
 
 <https://www.nrcs.usda.gov/sites/default/files/2022-09/The-Soil-Survey-Manual.pdf>
 
-È la stessa fonte citata dalla voce Wikipedia *Soil texture*, che però riporta
-solo i nomi delle classi e un esempio, non i confini.
+It is the same source cited by the Wikipedia article *Soil texture*, which
+however only lists the class names and an example, not the boundaries.
 
-Riferimento introduttivo: <https://en.wikipedia.org/wiki/Soil_texture>
+Introductory reference: <https://en.wikipedia.org/wiki/Soil_texture>
 
-### Le 12 classi USDA
+### The 12 USDA classes
 
-| Classe | Italiano | Area |
+| Class | Italian | Area |
 |---|---|---|
-| Sand | Sabbia | 1,50 % |
-| Loamy Sand | Sabbia franca | 3,00 % |
-| Sandy Loam | Franco sabbioso | 11,47 % |
-| Loam | Franco | 7,11 % |
-| Silt Loam | Franco limoso | 16,35 % |
-| Silt | Limo | 3,36 % |
-| Sandy Clay Loam | Franco argilloso sabbioso | 7,76 % |
-| Clay Loam | Franco argilloso | 6,50 % |
-| Silty Clay Loam | Franco argilloso limoso | 5,20 % |
-| Sandy Clay | Argilla sabbiosa | 4,00 % |
-| Silty Clay | Argilla limosa | 4,00 % |
-| Clay | Argilla | 29,75 % |
+| Sand | Sabbia | 1.50 % |
+| Loamy Sand | Sabbia franca | 3.00 % |
+| Sandy Loam | Franco sabbioso | 11.47 % |
+| Loam | Franco | 7.11 % |
+| Silt Loam | Franco limoso | 16.35 % |
+| Silt | Limo | 3.36 % |
+| Sandy Clay Loam | Franco argilloso sabbioso | 7.76 % |
+| Clay Loam | Franco argilloso | 6.50 % |
+| Silty Clay Loam | Franco argilloso limoso | 5.20 % |
+| Sandy Clay | Argilla sabbiosa | 4.00 % |
+| Silty Clay | Argilla limosa | 4.00 % |
+| Clay | Argilla | 29.75 % |
 
-Le aree sono calcolate sul triangolo e sommano a 100,0000 %.
+The areas are computed on the triangle and add up to 100.0000 %.
 
 ---
 
-## 2. Come funziona il calcolo
+## 2. How the calculation works
 
-Il triangolo è un *ternary plot*. I tre vertici nello spazio di coordinate
-SVG 800×800:
+The triangle is a *ternary plot*. The three vertices in the SVG 800×800
+coordinate space:
 
-| Vertice | x | y |
+| Vertex | x | y |
 |---|---|---|
-| 100 % clay (apice) | 385.21708 | 75.27597 |
-| 100 % silt (in basso a destra) | 722.222 | 658.4768 |
-| 100 % sand (in basso a sinistra) | 48.212218 | 658.4768 |
+| 100 % clay (apex) | 385.21708 | 75.27597 |
+| 100 % silt (bottom right) | 722.222 | 658.4768 |
+| 100 % sand (bottom left) | 48.212218 | 658.4768 |
 
-La posizione del punto è l'interpolazione baricentrica delle tre percentuali:
+The position of the point is the barycentric interpolation of the three
+percentages:
 
 ```
 x = (clay·385.21708 + silt·722.222 + sand·48.212218) / 100
 y = (clay·75.27597  + silt·658.4768 + sand·658.4768)  / 100
 ```
 
-Il passaggio inverso (dal click sul triangolo alla composizione) risolve lo
-stesso sistema lineare. Verificato: errore massimo di andata e ritorno
-≈ 4·10⁻¹⁴ punti percentuali.
+The inverse mapping (from a click on the triangle to the composition) solves the
+same linear system. Verified: maximum round-trip error ≈ 4·10⁻¹⁴ percentage
+points.
 
-### Perché le regole e non i poligoni
+### Why rules instead of polygons
 
-La classificazione usa direttamente le diseguaglianze del Soil Survey Manual
-(es. *"40 percent or more clay, 45 percent or less sand, and less than 40
-percent silt"*). I poligoni servono solo a disegnare ed evidenziare le classi:
-sono generati dalle stesse regole con shapely, quindi coincidono per
-costruzione con la classificazione e non c'è bisogno di disegnarli a mano.
+Classification uses the inequalities of the Soil Survey Manual directly
+(e.g. *"40 percent or more clay, 45 percent or less sand, and less than 40
+percent silt"*). Polygons are only used to draw and highlight the classes: they
+are generated from the same rules with shapely, so they match the
+classification by construction and do not need to be drawn by hand.
 
 ---
 
-## 3. Pipeline dei dati
+## 3. Data pipeline
 
 ```
-data/rules.json            regole USDA scritte a mano, con citazione della fonte
+data/rules.json            USDA rules written by hand, with source citation
         │
-        ├── tools/build_dataset.py     genera e valida
+        ├── tools/build_dataset.py     generates and validates
         │
-        ├── data/classes.json          dataset leggibile (per altri usi)
-        └── data/classes.js            dataset per il browser (window.SOIL_TRIANGLE_DATA)
+        ├── data/classes.json          readable dataset (for other uses)
+        └── data/classes.js            browser dataset (window.SOIL_TRIANGLE_DATA)
 ```
 
-Ogni disequazione `a·sand + b·silt + c·clay OP d` diventa un semipiano in
-(sand, silt), perché `clay = 100 − sand − silt`. Il poligono di una classe è
-l'intersezione del triangolo con quei semipiani: confini esatti, nessun
-approssimazione numerica. Le classi con più clausole (Silt Loam, Sandy Loam)
-vengono unite con shapely per evitare bordi interni spuri.
+Every inequality `a·sand + b·silt + c·clay OP d` becomes a half-plane in
+(sand, silt), because `clay = 100 − sand − silt`. A class polygon is the
+intersection of the triangle with those half-planes: exact boundaries, no
+numerical approximation. Classes with multiple clauses (Silt Loam, Sandy Loam)
+are merged with shapely to avoid spurious internal edges.
 
-### Ricostruire il dataset
+### Rebuilding the dataset
 
 ```bash
-python3 tools/build_dataset.py          # valida e riscrive data/
-python3 tools/build_dataset.py --check  # solo validazione, non scrive
+python3 tools/build_dataset.py          # validate and rewrite data/
+python3 tools/build_dataset.py --check  # validation only, no writes
 ```
 
-Dipendenze del build: `shapely`. L'app non ne ha bisogno.
+Build dependencies: `shapely`. The app does not need it.
 
-### Esito della validazione
+### Validation result
 
 ```
-somma aree           100.0000 %
-sovrapposizioni        0.000000 px²
-area non coperta       0.000036 px²
-regole vs poligoni     0 disaccordi su 17.865 punti interni
-casi di prova         18/18
+area sum             100.0000 %
+overlaps               0.000000 px²
+uncovered area         0.000036 px²
+rules vs polygons      0 disagreements on 17,865 interior points
+test cases            18/18
 ```
 
 ---
 
-## 4. Interfaccia
+## 4. Interface
 
-L'app parte con **0 / 0 / 0** e nessuna classe selezionata: il triangolo è
-visibile, ma il punto e l'esito compaiono solo quando ci sono dati.
+The app starts at **0 / 0 / 0** with no class selected: the triangle is
+visible, but the point and the result only appear once there is data.
 
-- **Si possono inserire due componenti qualsiasi**: clay+silt, clay+sand,
-  silt+sand. Il terzo è sempre calcolato come `100 − gli altri due`.
-- La regola è implicita, senza selettore: **gli ultimi due campi che modifichi
-  restano manuali**, il meno recente diventa quello calcolato. All'avvio il
-  calcolato è *sand*.
-- Tutti e tre i campi hanno lo stesso aspetto: nessun campo è marcato come
-  calcolato e la casella resta bianca.
-- La riga di stato dice sempre qual è il calcolo in corso, per esempio
-  *"Calcolato: sabbia 39,9 % (100 − argilla − limo)"*.
-- **Lingua**: due bandierine sotto il titolo, inglese e italiana. Cambiano al
-  volo etichette, messaggi, nomi delle classi, note e separatore decimale
-  (virgola in italiano, punto in inglese). La scelta è salvata in
-  `localStorage` (`soilTriangleLang`); al primo avvio si parte dalla lingua del
-  browser. Il titolo `USDA Soil Texture Triangle` resta uguale nelle due
-  versioni, come i nomi tecnici degli assi.
-- Se i due valori manuali superano 100 la riga diventa rossa, il punto sparisce
-  e non viene classificato nulla. I valori fuori da 0–100 vengono riportati
-  nell'intervallo.
-- Il punto si sposta sul triangolo e la classe viene evidenziata; tornando a
-  0 / 0 / 0 il punto sparisce e nessuna classe resta selezionata.
-- **Click sul triangolo**: converte la posizione in composizione, compila i due
-  campi manuali e ricalcola il terzo (interrogazione diretta).
-- **Legenda**: click su una classe mostra la sua definizione ufficiale
-  (interrogazione inversa: dalla classe ai suoi limiti).
-- **Reticolo interno ogni 10 %**: tre famiglie di linee (clay costante,
-  orizzontali; sand costante, parallele al lato destro; silt costante,
-  parallele al lato sinistro). Ogni linea va da una tacca all'altra, per esempio
-  quella a silt 10 % unisce il punto 90 % sand sulla base al 10 % sull'asse del
-  silt. Serve a leggere la composizione a occhio.
-- Titoli degli assi al centro di ciascun lato, ruotati lungo il lato e staccati
-  dalle tacche: `clay %` sul lato sinistro, `silt %` sul destro, `sand %` sulla
-  base.
-- Tacche ogni 10 % sui tre lati, con il valore numerico accanto a ciascuna.
+- **Any two components can be entered**: clay+silt, clay+sand, silt+sand. The
+  third is always calculated as `100 − the other two`.
+- The rule is implicit, with no selector: **the last two fields you edit stay
+  manual**, and the less recent one becomes the calculated field. At startup
+  the calculated field is *sand*.
+- All three fields look the same: no field is marked as calculated and the box
+  stays white.
+- The status line always says which calculation is in progress, for example
+  *"Calculated sand: 39.9 % (100 − clay − silt)"*.
+- **Language**: two flags below the title, English and Italian. They switch
+  labels, messages, class names, notes and the decimal separator on the fly
+  (comma in Italian, point in English). The choice is saved in `localStorage`
+  (`soilTriangleLang`); on first load the browser language is used. The title
+  `USDA Soil Texture Triangle` stays the same in both versions, as do the
+  technical axis names.
+- If the two manual values exceed 100, the line turns red, the point
+  disappears and nothing is classified. Values outside 0–100 are clamped.
+- The point moves on the triangle and the class is highlighted; going back to
+  0 / 0 / 0 hides the point and clears the selection.
+- **Click on the triangle**: converts the position into a composition, fills
+  the two manual fields and recalculates the third (direct query).
+- **Legend**: clicking a class shows its official definition (inverse query:
+  from the class to its limits).
+- **Internal grid every 10 %**: three families of lines (constant clay,
+  horizontal; constant sand, parallel to the right side; constant silt,
+  parallel to the left side). Each line runs from one tick to another, for
+  example the silt 10 % line joins the 90 % sand point on the base to the 10
+  tick on the silt axis. It helps read the composition by eye.
+- Axis titles at the midpoint of each side, rotated along the side and kept
+  clear of the ticks: `clay %` on the left side, `silt %` on the right,
+  `sand %` on the base.
+- Ticks every 10 % on all three sides, with the numeric value next to each one.
 
-La logica dei ruoli sta nella sezione `input` dello script:
+The role logic lives in the `input` section of the script:
 
 ```js
-var manual  = ["clay", "silt"];   // manuali, dal più recente al meno recente
-var derived = "sand";             // calcolato
+var manual  = ["clay", "silt"];   // manual fields, most recent first
+var derived = "sand";             // calculated field
 ```
 
-`setEdited(key)` aggiorna i due ruoli a ogni modifica; `update()` ricalcola il
-campo derivato e ridisegna. Per cambiare il campo calcolato all'avvio basta
-cambiare `derived` (e `manual` di conseguenza).
+`setEdited(key)` updates the two roles on every edit; `update()` recalculates
+the derived field and redraws. To change the calculated field at startup, just
+change `derived` (and `manual` accordingly).
 
-API minima per test e integrazioni:
+Minimal API for tests and integrations:
 
 ```js
 window.SOIL_TRIANGLE_API.classify(sand, silt, clay)  // -> "loam"
@@ -187,56 +189,60 @@ window.SOIL_TRIANGLE_API.toComposition(x, y)         // -> {sand, silt, clay}
 
 ---
 
-## 5. Limiti noti
+## 5. Known limitations
 
-- **Solo sistema USDA.** WRB e UK-ADAS usano classi e confini diversi
-  (WRB: limo 0,002–0,063 mm invece di 0,002–0,05; UK-ADAS: 11 classi).
-  L'architettura è pronta per un selettore: basta un altro `rules.<sistema>.json`.
-- **Nessuna sottoclasse della sabbia.** *Coarse sand*, *fine sand*, *very fine
-  sand* e le analoghe per loamy sand / sandy loam richiedono la distribuzione
-  granulometrica per classi dimensionali, non solo i tre totali.
-- **I punti esattamente sul confine** sono ambigui per definizione. Le regole
-  vengono valutate nell'ordine dell'array `classes`; se nessuna corrisponde si
-  riprova con tolleranza 10⁻⁶.
-- Il metodo *texture by feel* non è implementato: è qualitativo.
+- **USDA system only.** WRB and UK-ADAS use different classes and boundaries
+  (WRB: silt 0.002–0.063 mm instead of 0.002–0.05; UK-ADAS: 11 classes). The
+  architecture is ready for a selector: just add another `rules.<system>.json`.
+- **No sand subclasses.** *Coarse sand*, *fine sand*, *very fine sand* and the
+  equivalents for loamy sand / sandy loam require the particle-size
+  distribution, not just the three totals.
+- **Points exactly on a boundary** are ambiguous by definition. Rules are
+  evaluated in the order of the `classes` array; if none matches, the app
+  retries with a 10⁻⁶ tolerance.
+- The *texture by feel* method is not implemented: it is qualitative.
 
 ---
 
-## 6. File del progetto
+## 6. Project files
 
-| File | Ruolo |
+| File | Role |
 |---|---|
-| `arc-team_tools_usda_soil_triangle_v15.html` | l'app |
-| `index.html` | redirect per GitHub Pages |
-| `data/rules.json` | regole USDA, fonte di verità |
-| `data/classes.js` | dataset generato per il browser |
-| `data/classes.json` | dataset generato, formato aperto |
-| `tools/build_dataset.py` | generatore + validatore |
-| `js/raphael.js` | Raphaël 2.0 locale |
-| `docs/screenshot.png` | immagine usata nel README |
+| `arc-team_tools_usda_soil_triangle_v15.html` | the app |
+| `index.html` | redirect for GitHub Pages |
+| `data/rules.json` | USDA rules, source of truth |
+| `data/classes.js` | generated dataset for the browser |
+| `data/classes.json` | generated dataset, open format |
+| `tools/build_dataset.py` | generator + validator |
+| `js/raphael.js` | local Raphaël 2.0 |
+| `docs/screenshot.png` | English screenshot used in README.md |
+| `docs/screenshot.it.png` | Italian screenshot used in README.it.md |
+| `README.md` | English documentation (this file) |
+| `README.it.md` | Italian documentation |
 | `LICENSE` | GNU General Public License v3.0 |
 
-La cartella contiene solo i file necessari: le vecchie versioni `v02`–`v14`,
-la `__pycache__` del build e la cartella `img/` (disegni a mano, legende PNG e
-file di lavoro) sono state rimosse. I poligoni ora vengono generati dalle
-regole, quindi i disegni originali non servono più.
+The folder contains only the necessary files: the old `v02`–`v14` versions,
+the build `__pycache__` and the `img/` folder (hand-drawn shapes, PNG legends
+and working files) have been removed. Polygons are now generated from the
+rules, so the original drawings are no longer needed.
 
-Per rigenerare il dataset servono `data/rules.json` e `tools/build_dataset.py`;
-l'app usa solo `data/classes.js` e `js/raphael.js`.
+To rebuild the dataset you need `data/rules.json` and
+`tools/build_dataset.py`; the app only uses `data/classes.js` and
+`js/raphael.js`.
 
 ---
 
-## 7. Licenza
+## 7. License
 
 Copyright (C) 2026 Luca Bezzi.
 
-Questo programma è software libero: puoi ridistribuirlo e/o modificarlo secondo
-i termini della GNU General Public License, versione 3 o successiva
-(GPL-3.0-or-later). Il testo completo è in [`LICENSE`](LICENSE).
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License, version 3 or later
+(GPL-3.0-or-later). The full text is in [`LICENSE`](LICENSE).
 
-È distribuito nella speranza che sia utile, ma **senza alcuna garanzia**, senza
-nemmeno la garanzia implicita di commerciabilità o idoneità a uno scopo
-particolare. Vedi la GNU General Public License per i dettagli.
+It is distributed in the hope that it will be useful, but **without any
+warranty**, without even the implied warranty of merchantability or fitness for
+a particular purpose. See the GNU General Public License for details.
 
-Le definizioni delle classi citate nell'app provengono dal *Soil Survey Manual*
-(USDA Agriculture Handbook 18) e restano attribuite alla fonte originale.
+The class definitions quoted in the app come from the *Soil Survey Manual*
+(USDA Agriculture Handbook 18) and remain attributed to the original source.

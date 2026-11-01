@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Luca Bezzi
-"""Genera la geometria delle 12 classi USDA a partire da data/rules.json.
+"""Generate the geometry of the 12 USDA classes from data/rules.json.
 
-Le regole del Soil Survey Manual sono congiunzioni di disequazioni lineari in
-(sand, silt, clay). Poiche' sand+silt+clay=100, ogni disequazione e' un
-semipiano in (sand, silt): il poligono di una classe e' l'intersezione del
-triangolo con quei semipiani. I confini sono quindi esatti, non disegnati.
+The Soil Survey Manual rules are conjunctions of linear inequalities in
+(sand, silt, clay). Since sand+silt+clay=100, each inequality is a half-plane
+in (sand, silt): a class polygon is the intersection of the triangle with those
+half-planes. Boundaries are therefore exact, not drawn.
 
-Le classi con piu' clausole (silt loam, sandy loam) vengono unite con shapely
-per evitare bordi interni spuri.
+Classes with multiple clauses (silt loam, sandy loam) are merged with shapely
+to avoid spurious internal edges.
 
-Uso:
-    python3 tools/build_dataset.py            # valida e scrive data/
-    python3 tools/build_dataset.py --check    # solo validazione
+Usage:
+    python3 tools/build_dataset.py            # validate and write data/
+    python3 tools/build_dataset.py --check    # validation only
 
-Dipendenze: shapely (solo per il build, non per l'app).
+Dependencies: shapely (build only, not needed by the app).
 """
 
 import json
@@ -33,13 +33,13 @@ DATA = os.path.join(ROOT, "data")
 
 EPS = 1e-9
 
-# Triangolo in spazio composizione (sand, silt); clay = 100 - sand - silt.
+# Triangle in composition space (sand, silt); clay = 100 - sand - silt.
 TRI = [(100.0, 0.0), (0.0, 100.0), (0.0, 0.0)]
 
 
-# ---------------------------------------------------------------- geometria
+# ---------------------------------------------------------------- geometry
 def constraint_halfplane(k):
-    """a*sand + b*silt + c*clay OP d  ->  A*sand + B*silt OP D, forma f<=0."""
+    """a*sand + b*silt + c*clay OP d  ->  A*sand + B*silt OP D, form f<=0."""
     a, b, c, d = k["a"], k["b"], k["c"], k["d"]
     A, B, D = a - c, b - c, d - 100.0 * c
     op = k["op"]
@@ -48,12 +48,12 @@ def constraint_halfplane(k):
     elif op in (">=", ">"):
         sign = -1.0
     else:
-        raise ValueError("operatore non gestito: %r" % op)
+        raise ValueError("unsupported operator: %r" % op)
     return sign * A, sign * B, sign * D
 
 
 def clip(poly, hp):
-    """Sutherland-Hodgman: tiene la parte con f <= 0."""
+    """Sutherland-Hodgman: keep the part with f <= 0."""
     A, B, D = hp
     out = []
     n = len(poly)
@@ -113,7 +113,7 @@ def xy_to_composition(x, y, frame):
     return sand, silt, 100.0 - sand - silt
 
 
-# ------------------------------------------------------------------- regole
+# ------------------------------------------------------------------- rules
 def satisfies(cls, sand, silt, clay, strict=True):
     for clause in cls["clauses"]:
         ok = True
@@ -143,13 +143,13 @@ def classify_rules(classes, sand, silt, clay):
 
 
 def distance_to_boundaries(classes, sand, silt, clay):
-    """Distanza minima (in punti percentuali) dal confine piu' vicino."""
+    """Minimum distance (in percentage points) to the nearest boundary."""
     best = 1e9
     for cls in classes:
         for clause in cls["clauses"]:
             for k in clause:
                 v = k["a"] * sand + k["b"] * silt + k["c"] * clay
-                # |a*sand+b*silt+c*clay-d| / ||(a,b,c)|| con clay=100-sand-silt
+                # |a*sand+b*silt+c*clay-d| / ||(a,b,c)|| with clay=100-sand-silt
                 norm = math.sqrt((k["a"] - k["c"]) ** 2 + (k["b"] - k["c"]) ** 2)
                 if norm < 1e-12:
                     continue
@@ -157,7 +157,7 @@ def distance_to_boundaries(classes, sand, silt, clay):
     return best
 
 
-# ------------------------------------------------------------------ poligoni
+# ----------------------------------------------------------------- polygons
 def build(rules):
     frame = rules["frame"]
     out = []
@@ -187,7 +187,7 @@ def largest_polygon(geom):
 
 
 def label_point(geom):
-    """Punto interno il piu' lontano possibile dai bordi (griglia grossolana)."""
+    """Interior point as far as possible from the edges (coarse grid)."""
     g = largest_polygon(geom)
     minx, miny, maxx, maxy = g.bounds
     best, bestd = None, -1.0
@@ -209,34 +209,34 @@ def label_point(geom):
     return best
 
 
-# --------------------------------------------------------------- validazione
+# ------------------------------------------------------------- validation
 def validate(rules, built):
     frame = rules["frame"]
     triangle = Polygon([composition_to_xy(s, si, 100 - s - si, frame) for s, si in TRI])
     tri_area = triangle.area
 
     print("=" * 70)
-    print("Classi generate (area in %% del triangolo)")
+    print("Generated classes (area in %% of the triangle)")
     print("=" * 70)
     total = 0.0
     for cls, geom in built:
         if geom is None:
-            print("  %-18s MANCANTE" % cls["slug"])
+            print("  %-18s MISSING" % cls["slug"])
             continue
         total += geom.area
         n = len(geom.geoms) if isinstance(geom, MultiPolygon) else 1
-        print("  %-18s %6.2f%%   parti=%d  vertici=%d"
+        print("  %-18s %6.2f%%   parts=%d  vertices=%d"
               % (cls["slug"], 100 * geom.area / tri_area, n,
                  sum(len(g.exterior.coords) for g in (geom.geoms if isinstance(geom, MultiPolygon) else [geom]))))
-    print("\n  somma aree  = %.4f%%" % (100 * total / tri_area))
-    print("  triangolo   = 100.0000%%")
-    print("  sbilancio   = %+.6f%%" % (100 * (total - tri_area) / tri_area))
+    print("\n  area sum     = %.4f%%" % (100 * total / tri_area))
+    print("  triangle     = 100.0000%%")
+    print("  imbalance    = %+.6f%%" % (100 * (total - tri_area) / tri_area))
 
     geoms = [g for _, g in built if g is not None]
 
-    # sovrapposizioni
+    # overlaps
     print("\n" + "-" * 70)
-    print("Sovrapposizioni tra classi")
+    print("Overlaps between classes")
     print("-" * 70)
     worst = 0.0
     for i in range(len(geoms)):
@@ -246,22 +246,22 @@ def validate(rules, built):
                 print("  %-18s x %-18s %8.6f px2"
                       % (built[i][0]["slug"], built[j][0]["slug"], a))
                 worst = max(worst, a)
-    print("  sovrapposizione massima: %.6f px2 (%.8f%% del triangolo)"
+    print("  maximum overlap: %.6f px2 (%.8f%% of the triangle)"
           % (worst, 100 * worst / tri_area))
 
-    # copertura
+    # coverage
     print("\n" + "-" * 70)
-    print("Copertura del triangolo")
+    print("Triangle coverage")
     print("-" * 70)
     union = unary_union(geoms)
     missing = triangle.difference(union).area
     extra = union.difference(triangle).area
-    print("  area non coperta  : %.6f px2 (%.6f%%)" % (missing, 100 * missing / tri_area))
-    print("  area fuori triangolo: %.6f px2 (%.6f%%)" % (extra, 100 * extra / tri_area))
+    print("  uncovered area      : %.6f px2 (%.6f%%)" % (missing, 100 * missing / tri_area))
+    print("  area outside triangle: %.6f px2 (%.6f%%)" % (extra, 100 * extra / tri_area))
 
-    # regole vs poligoni, solo punti lontani dai confini
+    # rules vs polygons, interior points far from the boundaries only
     print("\n" + "-" * 70)
-    print("Coerenza regole <-> poligoni (solo punti interni, >0.3 punti %% dai confini)")
+    print("Rules <-> polygons consistency (interior points only, >0.3 percentage points from boundaries)")
     print("-" * 70)
     classes = rules["classes"]
     checked = diff = 0
@@ -288,20 +288,20 @@ def validate(rules, built):
                 diff += 1
                 if len(ex) < 8:
                     ex.append((sa, si, ci, r, hits))
-    print("  punti verificati : %d" % checked)
-    print("  disaccordi       : %d (%.4f%%)" % (diff, 100.0 * diff / max(checked, 1)))
+    print("  points checked   : %d" % checked)
+    print("  disagreements    : %d (%.4f%%)" % (diff, 100.0 * diff / max(checked, 1)))
     for e in ex:
-        print("    sand=%.1f silt=%.1f clay=%.1f  regola=%s  poligoni=%s" % e)
+        print("    sand=%.1f silt=%.1f clay=%.1f  rule=%s  polygons=%s" % e)
 
-    # casi di prova noti
+    # known test cases
     print("\n" + "-" * 70)
-    print("Casi di prova")
+    print("Test cases")
     print("-" * 70)
     cases = [
         ((100, 0, 0), "sand"),
         ((0, 0, 100), "clay"),
         ((0, 100, 0), "silt"),
-        ((70, 20, 10), "sandy_loam"),   # esempio della voce Wikipedia
+        ((70, 20, 10), "sandy_loam"),   # example from the Wikipedia article
         ((40, 40, 20), "loam"),
         ((20, 60, 20), "silty_loam"),
         ((20, 20, 60), "clay"),
@@ -320,12 +320,12 @@ def validate(rules, built):
     ok = 0
     for (sa, si, ci), want in cases:
         got = classify_rules(classes, sa, si, ci)
-        mark = "ok " if got == want else "DIVERSO"
+        mark = "ok " if got == want else "DIFFERENT"
         if got == want:
             ok += 1
-        print("  sand=%3d silt=%3d clay=%3d -> %-18s (atteso %s) %s"
+        print("  sand=%3d silt=%3d clay=%3d -> %-18s (expected %s) %s"
               % (sa, si, ci, got, want, mark))
-    print("  %d/%d corretti" % (ok, len(cases)))
+    print("  %d/%d correct" % (ok, len(cases)))
 
 
 # -------------------------------------------------------------------- output
@@ -362,12 +362,12 @@ def write_output(rules, built):
     with open(os.path.join(DATA, "classes.json"), "w", encoding="utf-8") as fh:
         json.dump(doc, fh, ensure_ascii=False, indent=1)
     with open(os.path.join(DATA, "classes.js"), "w", encoding="utf-8") as fh:
-        fh.write("/* Generato da tools/build_dataset.py - non modificare a mano.\n")
-        fh.write("   Fonte: %s, %s */\n" % (doc["source"]["document"], doc["source"]["chapter"]))
+        fh.write("/* Generated by tools/build_dataset.py - do not edit by hand.\n")
+        fh.write("   Source: %s, %s */\n" % (doc["source"]["document"], doc["source"]["chapter"]))
         fh.write("window.SOIL_TRIANGLE_DATA = ")
         json.dump(doc, fh, ensure_ascii=False, separators=(",", ":"))
         fh.write(";\n")
-    print("\nScritti data/classes.json e data/classes.js (%d classi)" % len(classes))
+    print("\nWrote data/classes.json and data/classes.js (%d classes)" % len(classes))
 
 
 def main():

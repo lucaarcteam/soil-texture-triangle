@@ -8,10 +8,10 @@
     "figure": "Figure 3-7, USDA textural triangle"
   },
   "notes": [
-    "Ogni vincolo e' un'inequazione lineare: a*sand + b*silt + c*clay OP d, con sand+silt+clay = 100.",
-    "Una classe puo' avere piu' clausole (unioni): basta soddisfarne una.",
-    "I confini sono inclusivi per il disegno; per la classificazione di un punto esatto sul confine si applica l'ordine dell'array 'classes'.",
-    "Le sottoclassi basate sulla granulometria della sabbia (coarse sand, fine sand, ...) non sono implementate: richiedono la distribuzione per classi dimensionali."
+    "Each constraint is a linear inequality: a*sand + b*silt + c*clay OP d, with sand+silt+clay = 100.",
+    "A class may have multiple clauses (unions): satisfying any one of them is enough.",
+    "Boundaries are inclusive for drawing; when classifying a point exactly on a boundary, the order of the 'classes' array applies.",
+    "Subclasses based on sand particle size (coarse sand, fine sand, ...) are not implemented: they require the particle-size distribution."
   ],
   "frame": {
     "apex": [385.21708, 75.27597],
