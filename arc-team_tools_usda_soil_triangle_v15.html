@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<!--
+  USDA Soil Texture Triangle
+  Copyright (C) 2026 Luca Bezzi
+  SPDX-License-Identifier: GPL-3.0-or-later
+  Classi e confini: USDA Soil Survey Manual, Agriculture Handbook 18 (2018).
+-->
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USDA Soil Texture Triangle</title>
+<style>
+  :root {
+    --ink: #23241f;
+    --muted: #6b6c63;
+    --line: #d8d6cc;
+    --paper: #faf9f5;
+    --accent: #2f5d50;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  main {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  .panel {
+    flex: 1 1 320px;
+    max-width: 380px;
+    min-width: 300px;
+  }
+
+  .stage {
+    flex: 0 1 720px;
+    min-width: 300px;
+  }
+
+  h1 {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin: 0 0 4px;
+  }
+
+  .sub {
+    margin: 0 0 22px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .fields {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .field label {
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .field input {
+    width: 92px;
+    padding: 6px 8px;
+    font: inherit;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: #fff;
+    color: var(--ink);
+  }
+
+  .field input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+    border-color: var(--accent);
+  }
+
+  .lang {
+    display: flex;
+    gap: 6px;
+    margin: 0 0 16px;
+  }
+
+  .flag {
+    width: 30px;
+    height: 20px;
+    padding: 0;
+    line-height: 0;
+    border: 1px solid rgba(0, 0, 0, 0.25);
+    border-radius: 3px;
+    background: none;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .flag svg { display: block; width: 100%; height: 100%; }
+
+  .flag:hover { opacity: 0.8; }
+
+  .flag[aria-pressed="true"] {
+    opacity: 1;
+    box-shadow: 0 0 0 2px var(--paper), 0 0 0 3px var(--accent);
+  }
+
+  .flag:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+  }
+
+  .sum {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .sum.bad { color: #a33; }
+
+  .result {
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    margin-bottom: 22px;
+    min-height: 104px;
+  }
+
+  .result-name {
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  .result-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+
+  .result-def {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--muted);
+    max-width: 42ch;
+  }
+
+  .legend {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 5px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12.5px;
+    background: none;
+    border: 0;
+    text-align: left;
+    color: var(--ink);
+    font-family: inherit;
+  }
+
+  .legend-item:hover,
+  .legend-item:focus-visible {
+    background: #eceade;
+    outline: none;
+  }
+
+  .legend-item[aria-pressed="true"] {
+    background: #e2dfd0;
+    font-weight: 600;
+  }
+
+  .swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    flex: 0 0 auto;
+  }
+
+  #canvas {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+  }
+
+  #canvas svg { display: block; }
+
+  .footnote {
+    margin-top: 18px;
+    font-size: 11.5px;
+    color: var(--muted);
+    max-width: 62ch;
+  }
+
+  .footnote a { color: var(--accent); }
+
+  .error {
+    padding: 12px 14px;
+    background: #fbeaea;
+    border: 1px solid #e3c3c3;
+    border-radius: 6px;
+    color: #8c2b2b;
+    font-size: 13px;
+  }
+
+  @media (max-width: 720px) {
+    main { padding: 18px 14px 40px; }
+    .legend { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <section class="panel">
+    <h1>USDA Soil Texture Triangle</h1>
+
+    <div class="lang" role="group" aria-label="Language / Lingua">
+      <button type="button" class="flag" data-lang="en" aria-pressed="false"
+              title="English" aria-label="English">
+        <svg viewBox="0 0 60 30" preserveAspectRatio="none"
+             aria-hidden="true" focusable="false">
+          <clipPath id="uk-clip"><path d="M0,0 v30 h60 v-30 z"/></clipPath>
+          <clipPath id="uk-counter">
+            <path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/>
+          </clipPath>
+          <g clip-path="url(#uk-clip)">
+            <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+            <path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uk-counter)"
+                  stroke="#C8102E" stroke-width="4"/>
+            <path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/>
+            <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/>
+          </g>
+        </svg>
+      </button>
+      <button type="button" class="flag" data-lang="it" aria-pressed="true"
+              title="Italiano" aria-label="Italiano">
+        <svg viewBox="0 0 30 20" aria-hidden="true" focusable="false">
+          <rect width="10" height="20" fill="#009246"/>
+          <rect x="10" width="10" height="20" fill="#fff"/>
+          <rect x="20" width="10" height="20" fill="#ce2b37"/>
+        </svg>
+      </button>
+    </div>
+
+    <p class="sub" id="sub">Tessitura del suolo secondo le 12 classi USDA.<br>Inserisci due valori qualsiasi: il terzo viene calcolato.</p>
+
+    <div class="fields">
+      <div class="field">
+        <label for="clay" id="label-clay">Clay (argilla) %</label>
+        <input id="clay" type="number" min="0" max="100" step="0.1" value="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="silt" id="label-silt">Silt (limo) %</label>
+        <input id="silt" type="number" min="0" max="100" step="0.1" value="0" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="sand" id="label-sand">Sand (sabbia) %</label>
+        <input id="sand" type="number" min="0" max="100" step="0.1" value="0" inputmode="decimal">
+      </div>
+    </div>
+
+    <div class="sum" id="sum"></div>
+
+    <div class="result">
+      <div class="result-name" id="resultName">&mdash;</div>
+      <div class="result-sub" id="resultSub"></div>
+      <p class="result-def" id="resultDef"></p>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <p class="footnote" id="footnote">
+      Definizioni da <em>Soil Survey Manual</em>, USDA Agriculture Handbook 18,
+      4&deg; ed. (2018), cap. 3, pp. 122&ndash;124.
+      Clicca sul triangolo per interrogare un punto: i due campi manuali vengono
+      compilati e il terzo si ricalcola.
+    </p>
+  </section>
+
+  <section class="stage">
+    <div id="canvas"></div>
+  </section>
+</main>
+
+<script src="js/raphael.js"></script>
+<script src="data/classes.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  var DATA = window.SOIL_TRIANGLE_DATA;
+  var canvas = document.getElementById("canvas");
+
+  if (!DATA || !DATA.classes) {
+    canvas.innerHTML = '<div class="error">Dataset non caricato: manca <code>data/classes.js</code>. ' +
+                       'Esegui <code>python3 tools/build_dataset.py</code>.</div>';
+    return;
+  }
+
+  if (!window.Raphael) {
+    canvas.innerHTML = '<div class="error">Libreria Raphael non caricata: manca <code>js/raphael.js</code>.</div>';
+    return;
+  }
+
+  var SIZE = 800;
+  var frame = DATA.frame;
+  var classes = DATA.classes;
+
+  var paper = Raphael("canvas", SIZE, SIZE);
+  var shapes = {};   // slug -> [elementi Raphael]
+  var selected = null;
+  var labels = {};
+  var legendView = null;   // classe mostrata dalla legenda, per ridisegnarla al cambio lingua
+
+  // ------------------------------------------------------------------ lingua
+  var LANG_KEY = "soilTriangleLang";
+
+  var I18N = {
+    it: {
+      sub: "Tessitura del suolo secondo le 12 classi USDA.<br>Inserisci due valori qualsiasi: il terzo viene calcolato.",
+      labels: {
+        clay: "Clay (argilla) %",
+        silt: "Silt (limo) %",
+        sand: "Sand (sabbia) %"
+      },
+      footnote: "Definizioni da <em>Soil Survey Manual</em>, USDA Agriculture Handbook 18, " +
+                "4&deg; ed. (2018), cap. 3, pp. 122&ndash;124. " +
+                "Clicca sul triangolo per interrogare un punto: i due campi manuali " +
+                "vengono compilati e il terzo si ricalcola.",
+      comp: { clay: "argilla", silt: "limo", sand: "sabbia" },
+      sep: ",",
+      statusIdle: function (d) {
+        return "Inserisci due valori: il terzo (" + compName(d) + ") viene calcolato.";
+      },
+      statusOver: function (a, b, sum, d) {
+        return cap(compName(a)) + " + " + compName(b) + " = " + fmt(sum) +
+          " %: supera 100 %, " + compName(d) + " non calcolabile.";
+      },
+      statusCalc: function (d, rest, a, b) {
+        return "Calcolato: " + compName(d) + " " + fmt(rest) +
+          " % (100 \u2212 " + compName(a) + " \u2212 " + compName(b) + ").";
+      },
+      idleDef: "In attesa dei dati: inserisci due valori, il terzo viene calcolato.",
+      overDef: "I due valori inseriti superano 100 %: riduci uno dei due.",
+      outside: "Fuori dal triangolo",
+      outsideDef: "La composizione non \u00e8 valida: le tre frazioni devono sommare a 100.",
+      legendDef: "definizione della classe",
+      composition: function (sand, silt, clay) {
+        return fmt(sand) + " sabbia / " + fmt(silt) + " limo / " + fmt(clay) + " argilla";
+      }
+    },
+    en: {
+      sub: "Soil texture according to the 12 USDA classes.<br>Enter any two values: the third is calculated.",
+      labels: {
+        clay: "Clay %",
+        silt: "Silt %",
+        sand: "Sand %"
+      },
+      footnote: "Definitions from the <em>Soil Survey Manual</em>, USDA Agriculture Handbook 18, " +
+                "4th ed. (2018), ch. 3, pp. 122&ndash;124. " +
+                "Click on the triangle to query a point: the two manual fields are " +
+                "filled in and the third is recalculated.",
+      comp: { clay: "clay", silt: "silt", sand: "sand" },
+      sep: ".",
+      statusIdle: function (d) {
+        return "Enter any two values: the third (" + d + ") is calculated.";
+      },
+      statusOver: function (a, b, sum, d) {
+        return cap(a) + " + " + b + " = " + fmt(sum) +
+          " %: over 100 %, " + d + " cannot be calculated.";
+      },
+      statusCalc: function (d, rest, a, b) {
+        return "Calculated " + d + ": " + fmt(rest) +
+          " % (100 \u2212 " + a + " \u2212 " + b + ").";
+      },
+      idleDef: "Waiting for data: enter two values and the third is calculated.",
+      overDef: "The two values entered exceed 100 %: reduce one of them.",
+      outside: "Outside the triangle",
+      outsideDef: "The composition is not valid: the three fractions must add up to 100.",
+      legendDef: "class definition",
+      composition: function (sand, silt, clay) {
+        return fmt(sand) + " sand / " + fmt(silt) + " silt / " + fmt(clay) + " clay";
+      }
+    }
+  };
+
+  var lang = initialLang();
+  var T = I18N[lang];
+
+  function initialLang() {
+    var saved = null;
+    try { saved = localStorage.getItem(LANG_KEY); } catch (e) {}
+    if (saved === "it" || saved === "en") return saved;
+    var nav = (navigator.language || navigator.userLanguage || "it").toLowerCase();
+    return nav.indexOf("it") === 0 ? "it" : "en";
+  }
+
+  function compName(key) { return T.comp[key]; }
+  function fmt(x) { return x.toFixed(1).replace(".", T.sep); }
+  function className(cls) { return lang === "it" ? cls.it : cls.en; }
+  function altName(cls) { return lang === "it" ? cls.en : cls.it; }
+
+
+  // ---------------------------------------------------------------- geometria
+  function toXY(sand, silt, clay) {
+    var t = sand + silt + clay;
+    if (t <= 0) return { x: 0, y: 0 };
+    return {
+      x: (clay * frame.apex[0] + silt * frame.silt[0] + sand * frame.sand[0]) / t,
+      y: (clay * frame.apex[1] + silt * frame.silt[1] + sand * frame.sand[1]) / t
+    };
+  }
+
+  function toComposition(x, y) {
+    var ax = frame.apex[0], ay = frame.apex[1];
+    var sx = frame.silt[0], sy = frame.silt[1];
+    var dx = frame.sand[0], dy = frame.sand[1];
+    var m11 = dx - ax, m12 = sx - ax;
+    var m21 = dy - ay, m22 = sy - ay;
+    var b1 = 100 * (x - ax), b2 = 100 * (y - ay);
+    var det = m11 * m22 - m12 * m21;
+    var sand = (b1 * m22 - m12 * b2) / det;
+    var silt = (m11 * b2 - b1 * m21) / det;
+    return { sand: sand, silt: silt, clay: 100 - sand - silt };
+  }
+
+  // --------------------------------------------------------------- regole USDA
+  function testConstraint(k, s, si, cl, eps) {
+    var v = k.a * s + k.b * si + k.c * cl;
+    switch (k.op) {
+      case "<=": return v <= k.d + eps;
+      case "<":  return v <  k.d + eps;
+      case ">=": return v >= k.d - eps;
+      case ">":  return v >  k.d - eps;
+    }
+    return false;
+  }
+
+  function matches(cls, s, si, cl, eps) {
+    for (var i = 0; i < cls.rules.length; i++) {
+      var clause = cls.rules[i];
+      var ok = true;
+      for (var j = 0; j < clause.length; j++) {
+        if (!testConstraint(clause[j], s, si, cl, eps)) { ok = false; break; }
+      }
+      if (ok) return true;
+    }
+    return false;
+  }
+
+  function classify(s, si, cl) {
+    var i;
+    for (i = 0; i < classes.length; i++) {
+      if (matches(classes[i], s, si, cl, 0)) return classes[i];
+    }
+    // punto esattamente su un confine: si accetta con tolleranza
+    for (i = 0; i < classes.length; i++) {
+      if (matches(classes[i], s, si, cl, 1e-6)) return classes[i];
+    }
+    return null;
+  }
+
+  function bySlug(slug) {
+    for (var i = 0; i < classes.length; i++) {
+      if (classes[i].slug === slug) return classes[i];
+    }
+    return null;
+  }
+
+  // ------------------------------------------------------------------ disegno
+  function pathOf(ring) {
+    var d = "M" + ring[0][0] + "," + ring[0][1];
+    for (var i = 1; i < ring.length; i++) {
+      d += "L" + ring[i][0] + "," + ring[i][1];
+    }
+    return d + "Z";
+  }
+
+  function draw() {
+    var i, j, cls, ring;
+
+    // classi
+    for (i = 0; i < classes.length; i++) {
+      cls = classes[i];
+      var els = [];
+      for (j = 0; j < cls.polygons.length; j++) {
+        ring = cls.polygons[j];
+        els.push(paper.path(pathOf(ring)).attr({
+          fill: cls.color,
+          "fill-opacity": 0.82,
+          stroke: "#ffffff",
+          "stroke-width": 1.2,
+          "stroke-linejoin": "round",
+          cursor: "pointer"
+        }));
+      }
+      shapes[cls.slug] = els;
+    }
+
+    // reticolo: tre famiglie di linee ogni 10 % (clay, sand, silt costanti)
+    drawGrid();
+
+    // assi
+    drawAxes();
+
+    // bordo del triangolo
+    var tri = paper.path(
+      "M" + frame.apex[0] + "," + frame.apex[1] +
+      "L" + frame.sand[0] + "," + frame.sand[1] +
+      "L" + frame.silt[0] + "," + frame.silt[1] + "Z"
+    ).attr({ fill: "none", stroke: "#3a3b33", "stroke-width": 1.8, "stroke-linejoin": "round" });
+
+    // etichette dei vertici
+    vertexLabel(frame.apex[0], frame.apex[1] - 22, "100% clay");
+    vertexLabel(frame.sand[0] - 6, frame.sand[1] + 26, "100% sand");
+    vertexLabel(frame.silt[0] + 6, frame.silt[1] + 26, "100% silt");
+
+    labels.triangle = tri;
+  }
+
+  function vertexLabel(x, y, text) {
+    paper.text(x, y, text).attr({
+      "font-size": 12,
+      "font-family": "Helvetica Neue, Arial, sans-serif",
+      fill: "#6b6c63"
+    });
+  }
+
+  // Reticolo interno: per ogni 10 % una linea a clay costante (orizzontale),
+  // una a sand costante (parallela al lato destro) e una a silt costante
+  // (parallela al lato sinistro). Insieme formano i triangoli da 10 %.
+  var GRID_STYLE = {
+    stroke: "#5c5d54",
+    "stroke-opacity": 0.4,
+    "stroke-width": 0.7,
+    "stroke-linecap": "round"
+  };
+
+  function drawGrid() {
+    var i, a, b;
+
+    function line(p, q) {
+      paper.path("M" + p.x + "," + p.y + "L" + q.x + "," + q.y).attr(GRID_STYLE);
+    }
+
+    for (i = 10; i <= 90; i += 10) {
+      // clay = i  (lato sinistro -> lato destro)
+      line(toXY(100 - i, 0, i), toXY(0, 100 - i, i));
+      // sand = i  (lato sinistro -> base)
+      line(toXY(i, 0, 100 - i), toXY(i, 100 - i, 0));
+      // silt = i  (lato destro -> base)
+      line(toXY(0, i, 100 - i), toXY(100 - i, i, 0));
+    }
+  }
+
+  function drawAxes() {
+    var i, p;
+
+    // clay: bordo sinistro (sand corner -> apex)
+    for (i = 10; i < 100; i += 10) {
+      p = toXY(100 - i, 0, i);
+      paper.path("M" + p.x + "," + p.y + "L" + (p.x - 7) + "," + (p.y + 4))
+        .attr({ stroke: "#8d8b80", "stroke-width": 1 });
+      paper.text(p.x - 22, p.y + 3, String(i)).attr({
+        "font-size": 10.5, fill: "#8d8b80",
+        "font-family": "Helvetica Neue, Arial, sans-serif"
+      });
+    }
+
+    // silt: bordo destro (apex -> silt corner)
+    for (i = 10; i < 100; i += 10) {
+      p = toXY(0, i, 100 - i);
+      paper.path("M" + p.x + "," + p.y + "L" + (p.x + 7) + "," + (p.y + 4))
+        .attr({ stroke: "#8d8b80", "stroke-width": 1 });
+      paper.text(p.x + 22, p.y + 3, String(i)).attr({
+        "font-size": 10.5, fill: "#8d8b80",
+        "font-family": "Helvetica Neue, Arial, sans-serif"
+      });
+    }
+
+    // sand: bordo inferiore (sand corner -> silt corner)
+    for (i = 10; i < 100; i += 10) {
+      p = toXY(i, 100 - i, 0);
+      paper.path("M" + p.x + "," + p.y + "L" + (p.x - 3) + "," + (p.y + 7))
+        .attr({ stroke: "#8d8b80", "stroke-width": 1 });
+      paper.text(p.x, p.y + 20, String(i)).attr({
+        "font-size": 10.5, fill: "#8d8b80",
+        "font-family": "Helvetica Neue, Arial, sans-serif"
+      });
+    }
+
+    // titoli degli assi: al centro di ciascun lato, ruotati lungo il lato e
+    // spostati verso l'esterno oltre le tacche (come "sand %" sulla base)
+    sideLabel(frame.sand, frame.apex, "clay %", 48);
+    sideLabel(frame.apex, frame.silt, "silt %", 48);
+    sideLabel(frame.sand, frame.silt, "sand %", 46);
+  }
+
+  // Etichetta al centro del lato a-b, spostata di `dist` px lungo la normale
+  // uscente, ruotata come il lato.
+  function sideLabel(a, b, text, dist) {
+    var dx = b[0] - a[0], dy = b[1] - a[1];
+    var len = Math.sqrt(dx * dx + dy * dy) || 1;
+    var mx = (a[0] + b[0]) / 2, my = (a[1] + b[1]) / 2;
+
+    var nx = -dy / len, ny = dx / len;
+    var cx = (frame.apex[0] + frame.sand[0] + frame.silt[0]) / 3;
+    var cy = (frame.apex[1] + frame.sand[1] + frame.silt[1]) / 3;
+    if ((mx - cx) * nx + (my - cy) * ny < 0) { nx = -nx; ny = -ny; }
+
+    var t = paper.text(mx + nx * dist, my + ny * dist, text).attr({
+      "font-size": 12,
+      fill: "#6b6c63",
+      "font-family": "Helvetica Neue, Arial, sans-serif"
+    });
+
+    var angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    if (Math.abs(angle) > 0.5) t.transform("r " + angle.toFixed(2));
+    return t;
+  }
+
+  // ------------------------------------------------------------------- stato
+  var dot = paper.circle(0, 0, 6).attr({
+    fill: "#ffffff", stroke: "#23241f", "stroke-width": 2.5, cursor: "pointer"
+  });
+
+  function highlight(slug) {
+    selected = slug;
+    for (var i = 0; i < classes.length; i++) {
+      var cls = classes[i];
+      var on = slug !== null && cls.slug === slug;
+      var idle = slug === null;
+      for (var j = 0; j < shapes[cls.slug].length; j++) {
+        shapes[cls.slug][j].attr({
+          "fill-opacity": on ? 1 : (idle ? 0.82 : 0.55),
+          stroke: on ? "#23241f" : "#ffffff",
+          "stroke-width": on ? 2 : 1.2
+        });
+      }
+    }
+    dot.toFront();
+    var items = document.querySelectorAll(".legend-item");
+    for (var k = 0; k < items.length; k++) {
+      items[k].setAttribute("aria-pressed", items[k].dataset.slug === slug ? "true" : "false");
+    }
+  }
+
+  function showResult(sand, silt, clay, cls) {
+    var name = document.getElementById("resultName");
+    var sub = document.getElementById("resultSub");
+    var def = document.getElementById("resultDef");
+
+    if (!cls) {
+      name.textContent = T.outside;
+      sub.textContent = "";
+      def.textContent = T.outsideDef;
+      highlight(null);
+      return;
+    }
+
+    name.textContent = className(cls);
+    name.style.color = "#23241f";
+    sub.textContent = altName(cls) + " \u00b7 " + T.composition(sand, silt, clay);
+    def.textContent = cls.source_text;
+    highlight(cls.slug);
+  }
+
+  function showIdle(overLimit) {
+    document.getElementById("resultName").textContent = "\u2014";
+    document.getElementById("resultSub").textContent = "";
+    document.getElementById("resultDef").textContent = overLimit
+      ? T.overDef
+      : T.idleDef;
+    highlight(null);
+  }
+
+  function showLegend(cls) {
+    legendView = cls;
+    document.getElementById("resultName").textContent = className(cls);
+    document.getElementById("resultSub").textContent =
+      altName(cls) + " \u00b7 " + T.legendDef;
+    document.getElementById("resultDef").textContent = cls.source_text;
+    highlight(cls.slug);
+  }
+
+  function placeDot(sand, silt, clay) {
+    var p = toXY(sand, silt, clay);
+    dot.attr({ cx: p.x, cy: p.y });
+    dot.toFront();
+    return p;
+  }
+
+  // ------------------------------------------------------------------ input
+  // Regola: gli ultimi due campi che modifichi restano manuali, il terzo viene
+  // calcolato come 100 meno gli altri due. Si puo' quindi partire da qualsiasi
+  // coppia: clay+silt, clay+sand, silt+sand. All'avvio il calcolato e' sand.
+  var KEYS = ["clay", "silt", "sand"];
+  var manual = ["clay", "silt"];   // dal piu' recente al meno recente
+  var derived = "sand";
+  var touched = false;
+
+  var inputs = {
+    clay: document.getElementById("clay"),
+    silt: document.getElementById("silt"),
+    sand: document.getElementById("sand")
+  };
+
+  function clamp(v) {
+    if (!isFinite(v)) return 0;
+    return Math.max(0, Math.min(100, v));
+  }
+
+  function round1(x) {
+    return (Math.round(x * 10) / 10).toFixed(1);
+  }
+
+  function manualValue(key) {
+    return clamp(parseFloat(inputs[key].value));
+  }
+
+  function cap(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // Il campo appena modificato diventa manuale. Se era quello calcolato, al
+  // suo posto passa il piu' vecchio dei due manuali.
+  function setEdited(key) {
+    if (key === derived) {
+      var next = manual[1];
+      manual = [key, manual[0]];
+      derived = next;
+    } else if (manual[1] === key) {
+      manual = [key, manual[0]];
+    }
+  }
+
+  function update() {
+    legendView = null;
+    var vals = {
+      clay: manualValue("clay"),
+      silt: manualValue("silt"),
+      sand: manualValue("sand")
+    };
+    var first = manual[0], second = manual[1];
+    var others = KEYS.filter(function (k) { return k !== derived; });
+    var rest = 100 - vals[first] - vals[second];
+    var sumEl = document.getElementById("sum");
+    var valid = touched && rest >= 0;
+
+    if (touched) {
+      vals[derived] = Math.max(0, rest);
+      inputs[derived].value = round1(vals[derived]);
+    }
+
+    if (!touched) {
+      sumEl.textContent = T.statusIdle(derived);
+      sumEl.className = "sum";
+    } else if (rest < 0) {
+      sumEl.textContent = T.statusOver(others[0], others[1],
+                                       vals[first] + vals[second], derived);
+      sumEl.className = "sum bad";
+    } else {
+      sumEl.textContent = T.statusCalc(derived, rest, others[0], others[1]);
+      sumEl.className = "sum";
+    }
+
+    if (!valid) {
+      dot.hide();
+      showIdle(rest < 0);
+      return;
+    }
+
+    dot.show();
+    placeDot(vals.sand, vals.silt, vals.clay);
+    showResult(vals.sand, vals.silt, vals.clay,
+               classify(vals.sand, vals.silt, vals.clay));
+  }
+
+  KEYS.forEach(function (key) {
+    inputs[key].addEventListener("input", function () {
+      var raw = parseFloat(inputs[key].value);
+      if (isFinite(raw) && (raw < 0 || raw > 100)) {
+        inputs[key].value = round1(clamp(raw));
+      }
+      setEdited(key);
+      touched = true;
+      update();
+    });
+    inputs[key].addEventListener("blur", function () {
+      if (key === derived) return;
+      if (inputs[key].value !== "") {
+        inputs[key].value = round1(manualValue(key));
+      }
+    });
+  });
+
+  // --------------------------------------------------- click sul triangolo
+  function onCanvasClick(evt) {
+    var svg = paper.canvas;
+    var rect = svg.getBoundingClientRect();
+    var x = (evt.clientX - rect.left) * (SIZE / rect.width);
+    var y = (evt.clientY - rect.top) * (SIZE / rect.height);
+    var c = toComposition(x, y);
+
+    if (c.sand < -0.5 || c.silt < -0.5 || c.clay < -0.5 ||
+        c.sand > 100.5 || c.silt > 100.5 || c.clay > 100.5) {
+      return;
+    }
+
+    // riporta dentro il triangolo
+    var s = Math.max(0, c.sand), si = Math.max(0, c.silt), cl = Math.max(0, c.clay);
+    var t = s + si + cl;
+    s = 100 * s / t; si = 100 * si / t; cl = 100 * cl / t;
+
+    // si compilano i due campi manuali, il terzo resta esattamente il resto
+    var comp = { sand: s, silt: si, clay: cl };
+    var v1 = Math.round(comp[manual[0]] * 10) / 10;
+    var v2 = Math.round(comp[manual[1]] * 10) / 10;
+    if (v1 + v2 > 100) v2 = Math.round((100 - v1) * 10) / 10;
+
+    inputs[manual[0]].value = round1(v1);
+    inputs[manual[1]].value = round1(v2);
+    touched = true;
+    update();
+  }
+
+  // ---------------------------------------------------------------- legenda
+  function buildLegend() {
+    var box = document.getElementById("legend");
+    box.innerHTML = "";
+    classes.forEach(function (cls) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "legend-item";
+      b.dataset.slug = cls.slug;
+      b.setAttribute("aria-pressed", "false");
+      b.innerHTML = '<span class="swatch" style="background:' + cls.color + '"></span>' +
+                    "<span>" + className(cls) + "</span>";
+      b.addEventListener("click", function () {
+        showLegend(cls);
+      });
+      b.addEventListener("mouseenter", function () {
+        if (selected !== cls.slug) {
+          for (var j = 0; j < shapes[cls.slug].length; j++) {
+            shapes[cls.slug][j].attr({ "fill-opacity": 1 });
+          }
+        }
+      });
+      b.addEventListener("mouseleave", function () {
+        if (selected !== cls.slug) {
+          for (var j = 0; j < shapes[cls.slug].length; j++) {
+            shapes[cls.slug][j].attr({ "fill-opacity": selected === null ? 0.82 : 0.55 });
+          }
+        }
+      });
+      box.appendChild(b);
+    });
+  }
+
+  // ------------------------------------------------------------- interfaccia
+  function applyLang(next) {
+    lang = next;
+    T = I18N[lang];
+
+    document.documentElement.lang = lang;
+    document.title = "USDA Soil Texture Triangle";
+    document.getElementById("sub").innerHTML = T.sub;
+    document.getElementById("footnote").innerHTML = T.footnote;
+    KEYS.forEach(function (k) {
+      document.getElementById("label-" + k).textContent = T.labels[k];
+    });
+
+    var flags = document.querySelectorAll(".flag");
+    for (var i = 0; i < flags.length; i++) {
+      var on = flags[i].dataset.lang === lang;
+      flags[i].setAttribute("aria-pressed", on ? "true" : "false");
+    }
+
+    buildLegend();
+    var keep = legendView;
+    update();
+    if (keep) showLegend(keep);
+
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+  }
+
+  var flagButtons = document.querySelectorAll(".flag");
+  for (var fi = 0; fi < flagButtons.length; fi++) {
+    flagButtons[fi].addEventListener("click", function () {
+      applyLang(this.dataset.lang);
+    });
+  }
+
+  // ------------------------------------------------------------------ avvio
+  draw();
+  paper.canvas.style.cursor = "crosshair";
+  paper.canvas.addEventListener("click", onCanvasClick);
+  applyLang(lang);
+
+  // API minima, usata dai test e da eventuali integrazioni
+  window.SOIL_TRIANGLE_API = {
+    classify: function (sand, silt, clay) {
+      var c = classify(sand, silt, clay);
+      return c ? c.slug : null;
+    },
+    toXY: toXY,
+    toComposition: toComposition,
+    classes: classes
+  };
+})();
+</script>
+</body>
+</html>
