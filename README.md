@@ -7,7 +7,7 @@ percentuali di sabbia, limo e argilla, secondo le 12 classi del sistema USDA.
 
 <p align="center">
   <img src="docs/screenshot.png"
-       alt="USDA Soil Texture Triangle con clay 20 %, silt 40 % e sand 40 %: classe Loam"
+       alt="USDA Soil Texture Triangle con clay 20 %, silt 40 % e sand 40 %: classe Franco (Loam)"
        width="900">
 </p>
 
